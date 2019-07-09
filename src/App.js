@@ -4,10 +4,19 @@ import {
   Route,
   Link,
   Switch,
-  Redriect,
+  Redirect,
   BrowserRouter as Router
 } from 'react-router-dom';
 
+function PrivateRoute ({authenticated, component: Component, ...rest}) {
+  return (
+    <Route render={props => (
+      authenticated 
+      ? <Component {...rest} {...props} /> 
+      : <Redirect to="/login" />
+    )} />
+  )
+}
 
 function Login() {
   return (
@@ -34,6 +43,13 @@ function home() {
 
 
 class App extends Component {
+  constructor() {
+    super();
+    this.state = {
+      authenticated: false
+    }
+  }
+
   render () {
     return (
       <Router>
@@ -47,7 +63,9 @@ class App extends Component {
         </ul>
         <Switch>
           <Route exact path="/" component={home} />
-          <Route exact path="/dashboard" component={Dashboard} />
+          <PrivateRoute
+            authenticated={this.state.authenticated}
+            path="/dashboard" component={Dashboard} />
           <Route exact path="/login" component={Login} />
         </Switch>
       </Router>
