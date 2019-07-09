@@ -7,6 +7,18 @@ import {
   Redirect,
   BrowserRouter as Router
 } from 'react-router-dom';
+import {
+  login,
+  logout,
+  auth,
+  createTodo
+} from './utils/FirebaseService';
+
+const linkStyle = {
+  textDecoration: "underline",
+  color: "rebeccapurple",
+  cursor: "pointer"
+}
 
 function PrivateRoute ({authenticated, component: Component, ...rest}) {
   return (
@@ -18,18 +30,39 @@ function PrivateRoute ({authenticated, component: Component, ...rest}) {
   )
 }
 
-function Login() {
+function Login({authenticated}) {
+  if(authenticated) return <Redirect to="/dashboard"/>
   return (
     <div>
       <h2>You need to login to see this</h2> 
-      <button>Login with Google</button>
+      <button onClick={login}>Login With Google</button>
     </div>
   )
 }
-function Dashboard() {
+function Dashboard(
+  user, test, handleChange, handleSubmit
+  ) {
   return (
     <div>
-      <h2>Welcome to Your Dashboard</h2> 
+      <h2>Welcome to Your Dashboard, {user.displayName.split(" ")[0]}</h2> 
+      <img
+            style={{
+                height: 100,
+                borderRadius: '50%',
+                border: '2px solid black'
+            }} 
+            src={user.photoURL} 
+            alt={user.displayName}
+            />
+            <br />
+            <h5>Here's your todo items</h5>
+            <ul>
+              
+            </ul> 
+            <form onSubmit={handleSubmit}>
+              <input name="text" value={test} onChange={handleChange} />
+              <button>Add todo</button>
+            </form>
     </div>
   )
 }
@@ -46,29 +79,79 @@ class App extends Component {
   constructor() {
     super();
     this.state = {
-      authenticated: false
+      authenticated: false,
+      test: "",
+      user: null,
+      dbRef: null
     }
+  }
+
+  handleChange = e => {
+    this.setState({[e.target.name] : e.target.value });
+  }
+  
+  handleSubmit = e => {
+    const { dbRef, text } = this.state;
+    e.preventDefault();
+    createTodo(dbRef, {
+      text,
+      completed: false
+    }).then(() => this.setState({text: ""}));
+  }
+
+  componentDidMount() {
+    auth.onAuthStateChanged(user => {
+      if(user) {
+        this.setState({authenticated: true,
+        user,
+        dbRef: `users/${user.uid}/todos`,
+        })
+      }
+      else {
+        this.setState({authenticated: false,
+        user: null,
+        dbRef: null});
+      }
+    });
   }
 
   render () {
     return (
       <Router>
-        <ul>
+      <ul>
           <li>
-            <Link to="/">Home</Link>
+              <Link to="/">Home</Link>
           </li>
           <li>
-            <Link to="/dashboard">Dashboard</Link>
+              <Link to="/dashboard">Dashboard</Link>
           </li>
-        </ul>
-        <Switch>
+          {
+              this.state.authenticated
+              &&
+              <li style={linkStyle}>
+                  <span onClick={logout}>Logout</span>
+              </li>
+          }
+      </ul>
+      <Switch>
           <Route exact path="/" component={home} />
-          <PrivateRoute
-            authenticated={this.state.authenticated}
-            path="/dashboard" component={Dashboard} />
-          <Route exact path="/login" component={Login} />
-        </Switch>
-      </Router>
+          <PrivateRoute 
+          authenticated={this.state.authenticated}
+          handleChange={this.handleChange}
+          handleSubmit={this.handleSubmit}
+          user={this.state.user}
+          text={this.state.text}
+          path="/dashboard" 
+          component={Dashboard} 
+          />
+          <Route path="/login" render={props => (
+              <Login 
+              {...props}
+              authenticated={this.state.authenticated}
+              />
+          )} />
+      </Switch>
+    </Router>
     );
   }
 }
