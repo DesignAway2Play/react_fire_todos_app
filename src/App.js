@@ -11,7 +11,8 @@ import {
   login,
   logout,
   auth,
-  createTodo
+  createTodo,
+  database
 } from './utils/FirebaseService';
 
 const linkStyle = {
@@ -40,7 +41,7 @@ function Login({authenticated}) {
   )
 }
 function Dashboard(
-  user, test, handleChange, handleSubmit
+  user, test, handleChange, handleSubmit, todos
   ) {
   return (
     <div>
@@ -57,7 +58,9 @@ function Dashboard(
             <br />
             <h5>Here's your todo items</h5>
             <ul>
-              
+              todos.map(([id, text]) => (
+
+              ))
             </ul> 
             <form onSubmit={handleSubmit}>
               <input name="text" value={test} onChange={handleChange} />
@@ -82,7 +85,8 @@ class App extends Component {
       authenticated: false,
       test: "",
       user: null,
-      dbRef: null
+      dbRef: null,
+      todos: []
     }
   }
 
@@ -90,6 +94,20 @@ class App extends Component {
     this.setState({[e.target.name] : e.target.value });
   }
   
+  handlePopulateTodos = () => [
+    database.ref(this.state.dbRef)
+    .on('value', snapshot => {
+      const newStateArray = [];
+      snapshot.forEach(childSnapshot => {
+        newStateArray.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+      this.setState({todos: newStateArray});
+    })
+  ];
+
   handleSubmit = e => {
     const { dbRef, text } = this.state;
     e.preventDefault();

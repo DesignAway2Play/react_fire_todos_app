@@ -35,5 +35,6 @@ export {
     login,
     logout,
     auth,
+    database,
     createTodo
 }
